@@ -13,4 +13,4 @@ Total switch collisions: 788
 Avr. switch collisions: 5.472222
 Total memory collisions: 0
 Avr. memory collisions: 0.000000
-tb\tb_butterfly_network.v:301: $finish called at 855000 (1ps)
+tb\tb_butterfly_network.v:305: $finish called at 855000 (1ps)

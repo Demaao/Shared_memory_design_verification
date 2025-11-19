@@ -12,31 +12,31 @@ module tb_butterfly_network;
     parameter LOCAL_ADDR_BITS  = `LOCAL_ADDR_BITS;
     parameter ADDR_WIDTH       = `ADDR_WIDTH;
     parameter PACKET_W         = `PACKET_W;
-    parameter BACK_PACKET_W    = `BACK_PACKET_W; 
+    parameter BACK_PACKET_W    = `BACK_PACKET_W;
     parameter DATA_WIDTH       = `DATA_WIDTH;
     parameter TOTAL_SWITCHES   = `TOTAL_SWITCHES;
     parameter COLLISION_COUNT_W = `TOTAL_SWITCHES_LOG2;
-    
-    parameter K_REQ_PER_CORE   = 20;   // Number of requests per core
-    
-    // Global counters
-    integer dropp_count = 0;                
-    integer module_collisions_count = 0;    
-    integer switch_collisions_sum = 0;      
 
-    // DUT SIGNALS 
+    parameter K_REQ_PER_CORE   = 20;   // Number of requests per core
+
+    // Global counters
+    integer dropp_count = 0;
+    integer module_collisions_count = 0;
+    integer switch_collisions_sum = 0;
+
+    // DUT SIGNALS
     reg  clk;
     reg  [N*PACKET_W-1:0] in_flat;
     reg  [N-1:0] valid_in;
     wire [N*BACK_PACKET_W-1:0] out_flat;
     wire [N-1:0] valid_back_out;
-    
-    wire [N-1:0] dropped_core_bus;                  
-    wire [COLLISION_COUNT_W-1:0] total_collisions;  
-    
-    integer max_latency [0:N-1];                    
 
-    // DUT 
+    wire [N-1:0] dropped_core_bus;
+    wire [COLLISION_COUNT_W-1:0] total_collisions;
+
+    integer max_latency [0:N-1];
+
+    // DUT
     butterfly_network dut (
         .clk(clk),
         .in_flat(in_flat),
@@ -45,11 +45,11 @@ module tb_butterfly_network;
         .valid_back_out(valid_back_out),
         .dropped_core_bus(dropped_core_bus),
         .total_collisions(total_collisions)
-    );    
+    );
 
     // CLOCK GENERATION
     initial clk = 0;
-    always #5 clk = ~clk;     
+    always #5 clk = ~clk;
 
     // Packet Tables
     reg [PACKET_W-1:0] packet_table [0:N-1][0:K_REQ_PER_CORE-1];
@@ -60,12 +60,16 @@ module tb_butterfly_network;
     integer drop_count [0:N-1];
     integer send_cycle [0:N-1];
     integer total_latency [0:N-1];
-                            
-    // Helper function to increase priority 
+
+    // Test configuration parameters (moved here for syntax correctness)
+    integer TEST_MODE;
+    reg [80*8:1] TEST_TYPE;
+
+    // Helper function to increase priority
     function [1:0] bump_priority(input [1:0] pri);
         bump_priority = (pri < 2'b11) ? pri + 1 : pri;
     endfunction
-    
+
     // Hash function for distributing requests across modules
     function [MOD_ID_BITS-1:0] xor_shift_hash(input [ADDR_WIDTH-1:0] addr);
         reg [ADDR_WIDTH-1:0] mixed;
@@ -82,37 +86,37 @@ module tb_butterfly_network;
     integer i, j, s, base_addr;
     reg rw;
 
-    // ====================================================
-    // TEST MODE CONFIGURATION
-    // ====================================================
-    reg [3:0] TEST_MODE;          
-    reg [80*8:1] TEST_TYPE;       
+initial begin
+    // Default in case no macro defined
+    TEST_MODE = 4;
 
-    initial begin
-    // Select which test mode to run
+    `ifdef READ_ONLY
+        TEST_MODE = 3;
+    `elsif WRITE_ONLY
+        TEST_MODE = 2;
+    `elsif MIXED_RW
         TEST_MODE = 4;
-        
-         // Assign a string name to each test mode
-        case (TEST_MODE)
-            0: TEST_TYPE = "HASHED_READS";
-            1: TEST_TYPE = "SAME_ADDR_WRITES";
-            2: TEST_TYPE = "WRITE_ONLY";
-            3: TEST_TYPE = "READ_ONLY";
-            4: TEST_TYPE = "MIXED_RW";
-        default: begin
-         // Invalid test mode handling
-            TEST_TYPE = "UNKNOWN";
-            $display("ERROR: Invalid TEST_MODE selected (%0d). Must be 0-4.", TEST_MODE);
-            $finish;
-        end
+    `elsif SAME_ADDR_WRITES
+        TEST_MODE = 1;
+    `elsif HASHED_READS
+        TEST_MODE = 0;
+    `endif
+
+    // Set the test name string
+    case (TEST_MODE)
+        0: TEST_TYPE = "HASHED_READS";
+        1: TEST_TYPE = "SAME_ADDR_WRITES";
+        2: TEST_TYPE = "WRITE_ONLY";
+        3: TEST_TYPE = "READ_ONLY";
+        4: TEST_TYPE = "MIXED_RW";
+        default: TEST_TYPE = "UNKNOWN";
     endcase
 
-        // Display test information
-        $display("\n==========================================");
-        $display(" Running Shared Memory Testbench");
-        $display(" TEST_TYPE: %0s", TEST_TYPE);
-        $display("==========================================\n");
-    end
+    $display("\n==========================================");
+    $display(" Running Shared Memory Testbench");
+    $display(" TEST_TYPE: %0s", TEST_TYPE);
+    $display("==========================================\n");
+end
 
     initial begin
         base_addr = 0;
@@ -179,7 +183,7 @@ endcase
             max_latency[i] = 0;
         end
     end
-   
+
     // MAIN LOGIC
     reg [BACK_PACKET_W-1:0] ret_pkt;
     reg ret_v, suc, dropped;
@@ -208,7 +212,7 @@ endcase
                 last_pkt[i] = pkt;
                 waiting_for_response[i] = 1;
                 req_count[i] = req_count[i] + 1;
-                send_cycle[i] = $time / 10;  
+                send_cycle[i] = $time / 10;
             end else if (ret_v && suc && req_count[i] < K_REQ_PER_CORE) begin
                 pkt = packet_table[i][req_count[i]];
                 in_flat[i*PACKET_W +: PACKET_W] = pkt;
@@ -217,10 +221,10 @@ endcase
                 waiting_for_response[i] = 1;
                 req_count[i] = req_count[i] + 1;
                 latency_now = ($time / 10) - send_cycle[i];
-                total_latency[i] = total_latency[i] + latency_now; 
+                total_latency[i] = total_latency[i] + latency_now;
                 if (latency_now > max_latency[i])
                     max_latency[i] = latency_now;
-                send_cycle[i] = $time / 10; 
+                send_cycle[i] = $time / 10;
             end else if ((ret_v && !suc) || (!ret_v && dropped)) begin
                 rw      = `PKT_RW(last_pkt[i]);
                 modid   = `PKT_MODULE_ID(last_pkt[i]);
@@ -235,7 +239,7 @@ endcase
             end else if (ret_v && suc) begin
                 waiting_for_response[i] = 0;
                 latency_now = ($time / 10) - send_cycle[i];
-                total_latency[i] = total_latency[i] + latency_now;  
+                total_latency[i] = total_latency[i] + latency_now;
                 if (latency_now > max_latency[i])
                     max_latency[i] = latency_now;
             end

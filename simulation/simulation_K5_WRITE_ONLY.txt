@@ -1,0 +1,16 @@
+
+==========================================
+ Running Shared Memory Testbench
+ TEST_TYPE: WRITE_ONLY
+==========================================
+
+
+===== SIMULATION DONE EARLY AT T=775000 =====
+Total dropp: 41
+Global Average Latency = 3.234375 cycles
+Global Max Latency = 20 cycles
+Total switch collisions: 699
+Avr. switch collisions: 4.854167
+Total memory collisions: 0
+Avr. memory collisions: 0.000000
+tb\tb_butterfly_network.v:305: $finish called at 775000 (1ps)

@@ -1,16 +1,16 @@
 
 ==========================================
  Running Shared Memory Testbench
- TEST_TYPE: MIXED_RW
+ TEST_TYPE: SAME_ADDR_WRITES
 ==========================================
 
 
-===== SIMULATION DONE EARLY AT T=855000 =====
-Total dropp: 66
-Global Average Latency = 3.457813 cycles
-Global Max Latency = 13 cycles
-Total switch collisions: 788
-Avr. switch collisions: 5.472222
-Total memory collisions: 0
-Avr. memory collisions: 0.000000
-tb\tb_butterfly_network.v:301: $finish called at 855000 (1ps)
+===== SIMULATION DONE EARLY AT T=6415000 =====
+Total dropp: 2561
+Global Average Latency = 18.209375 cycles
+Global Max Latency = 565 cycles
+Total switch collisions: 5225
+Avr. switch collisions: 36.284722
+Total memory collisions: 293
+Avr. memory collisions: 18.312500
+tb\tb_butterfly_network.v:305: $finish called at 6415000 (1ps)
