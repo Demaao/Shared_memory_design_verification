@@ -89,9 +89,10 @@ module tb_butterfly_network;
     reg [80*8:1] TEST_TYPE;       
 
     initial begin
- 
+    // Select which test mode to run
         TEST_MODE = 4;
-
+        
+         // Assign a string name to each test mode
         case (TEST_MODE)
             0: TEST_TYPE = "HASHED_READS";
             1: TEST_TYPE = "SAME_ADDR_WRITES";
@@ -99,65 +100,63 @@ module tb_butterfly_network;
             3: TEST_TYPE = "READ_ONLY";
             4: TEST_TYPE = "MIXED_RW";
         default: begin
+         // Invalid test mode handling
             TEST_TYPE = "UNKNOWN";
             $display("ERROR: Invalid TEST_MODE selected (%0d). Must be 0-4.", TEST_MODE);
             $finish;
         end
     endcase
 
+        // Display test information
         $display("\n==========================================");
         $display(" Running Shared Memory Testbench");
         $display(" TEST_TYPE: %0s", TEST_TYPE);
         $display("==========================================\n");
     end
 
-    // ====================================================
-    // INITIALIZATION OF PACKETS  ← כאן נעשה השינוי המשמעותי
-    // ====================================================
     initial begin
         base_addr = 0;
         for (i = 0; i < N; i = i + 1)
             for (j = 0; j < K_REQ_PER_CORE; j = j + 1) begin
 
                case (TEST_MODE)
-    0: begin
-        // HASHED_READS - גישה רנדומלית מבוזרת
-        addr_i  = $urandom % 1024;   // ← לא base_addr
-        modid_i = xor_shift_hash(addr_i);
-        rw = 1'b0;
+0: begin
+        // HASHED_READS - random read addresses
+        addr_i  = $urandom % 1024;         // random address
+        modid_i = xor_shift_hash(addr_i);  // map to module
+        rw = 1'b0;                         // read
     end
 
     1: begin
-        // SAME_ADDR_WRITES - כל הליבות לאותה כתובת
+        // SAME_ADDR_WRITES - all cores write to same address
         addr_i  = 0;
         modid_i = 0;
-        rw = 1'b1;
+        rw = 1'b1;                         // write
     end
 
     2: begin
-        // WRITE_ONLY - כל ליבה לכתובות עוקבות
+        // WRITE_ONLY - each core writes to sequential addresses
         addr_i  = base_addr + i;
         modid_i = xor_shift_hash(addr_i);
-        rw = 1'b1;
+        rw = 1'b1;                         // write
     end
 
     3: begin
-        // READ_ONLY - כל ליבה קוראת כתובות רחוקות
+        // READ_ONLY - each core reads from distant addresses
         addr_i  = base_addr + (i * 32);
         modid_i = xor_shift_hash(addr_i);
-        rw = 1'b0;
+        rw = 1'b0;                         // read
     end
 
     4: begin
-        // MIXED_RW - חצי קוראות, חצי כותבות לכתובות קרובות
+        // MIXED_RW - half read, half write to nearby addresses
         addr_i  = base_addr + (i * 2);
         modid_i = xor_shift_hash(addr_i);
-        rw = (i % 2 == 0);
+        rw = (i % 2 == 0);                 // even = read, odd = write
     end
 endcase
 
                 local_addr_i = addr_i[ADDR_WIDTH-1 -: LOCAL_ADDR_BITS];
-
                 packet_table[i][j] = {
                     rw,
                     modid_i,
@@ -180,10 +179,8 @@ endcase
             max_latency[i] = 0;
         end
     end
-
-    // ====================================================
+   
     // MAIN LOGIC
-    // ====================================================
     reg [BACK_PACKET_W-1:0] ret_pkt;
     reg ret_v, suc, dropped;
     reg [PACKET_W-1:0] pkt;
@@ -245,9 +242,7 @@ endcase
         end
     end
 
-    // ====================================================
     // Count successes & drops
-    // ====================================================
     always @(posedge clk) begin
         if (^total_collisions !== 1'bx)
             switch_collisions_sum = switch_collisions_sum + total_collisions;
@@ -276,9 +271,7 @@ endcase
                 dropp_count = dropp_count + 1;
     end
 
-    // ====================================================
     // Simulation End
-    // ====================================================
     reg done;
     integer global_total_latency = 0;
     integer global_total_success = 0;

@@ -82,14 +82,21 @@ def plot_results(data, efficiency):
     # Save the graph with test name
     file_name = f"results_{data['test_type']}.png"
     plt.tight_layout()
-    plt.savefig(file_name, dpi=300)
+    output_dir = "analysis"
+    os.makedirs(output_dir, exist_ok=True)
+    plt.savefig(os.path.join(output_dir, file_name), dpi=300)
     print(f"Graph saved as: {file_name}")
     plt.show()
 
 
 # Run the analysis
 if __name__ == "__main__":
-    log_path = "../simulation/simulation_K5_MIXED_RW.txt"
-    results = parse_simulation_log(log_path)
-    efficiency = analyze_results(results)
-    plot_results(results, efficiency)
+    sim_dir = "simulation"
+    for file_name in os.listdir(sim_dir):
+        if file_name.endswith(".txt"):
+            log_path = os.path.join(sim_dir, file_name)
+            print(f"\n--- Analyzing {file_name} ---")
+            results = parse_simulation_log(log_path)
+            efficiency = analyze_results(results)
+            plot_results(results, efficiency)
+
